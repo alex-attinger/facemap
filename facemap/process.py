@@ -178,7 +178,7 @@ def compute_SVD(containers, cumframes, Ly, Lx, avgmotion, ncomps=500, sbin=3, ro
                 U[nr] = usv[0]
     return U
 
-def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=None, fullSVD=True):
+def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, rois=None, fullSVD=True,proc=None):
     # project U onto each frame in the video and compute the motion energy
     # also compute pupil on single frames on non binned data
     # the pixels are binned in spatial bins of size sbin
@@ -257,7 +257,7 @@ def process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin=3, tic=None, 
                                        rois[p]['xrange'][0]:rois[p]['xrange'][-1]+1]
                 imgp[:, ~rois[p]['ellipse']] = 255
                 com, area, axdir, axlen = pupil.process(imgp.astype(np.float32), rois[p]['saturation'],
-                                                        rois[p]['pupil_sigma'], pupreflector[k])
+                                                        rois[p]['pupil_sigma'], pupreflector[k],smooth_space=proc['pupil_smooth_space'])
                 pups[k]['com'][t:t+nt1,:] = com
                 pups[k]['area'][t:t+nt1] = area
                 pups[k]['axdir'][t:t+nt1,:,:] = axdir
@@ -352,7 +352,7 @@ def save(proc, savepath=None):
     # save ROIs and traces
     basename, filename = os.path.split(proc['filenames'][0][0])
     filename, ext = os.path.splitext(filename)
-    if savepath is not None:
+    if savepath is not None and len(savepath)>0:
         basename = savepath
     savename = os.path.join(basename, ("%s_proc.npy"%filename))
     print(savename)
@@ -465,7 +465,7 @@ def run(filenames, parent=None, proc=None, savepath=None):
    
     # project U onto all movie frames
     # and compute pupil (if selected)
-    V, M, pups, blinks, runs = process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin, tic, rois, fullSVD)
+    V, M, pups, blinks, runs = process_ROIs(containers, cumframes, Ly, Lx, avgmotion, U, sbin, tic, rois, fullSVD,proc=proc)
 
     # smooth pupil and blinks and running
     print('Smoothing ...')
@@ -479,7 +479,7 @@ def run(filenames, parent=None, proc=None, savepath=None):
         b,_ = pupil.smooth(b.copy())
 
     print('computed projection at %0.2fs'%(time.time() - tic))
-    proc = {
+    proc_new = {
             'filenames': filenames, 'save_path': savepath, 'Ly': Ly, 'Lx': Lx,
             'sbin': sbin, 'fullSVD': fullSVD, 'save_mat': save_mat,
             'Lybin': Lybin, 'Lxbin': Lxbin,
@@ -490,8 +490,8 @@ def run(filenames, parent=None, proc=None, savepath=None):
             'motSVD': V, 'motMask': U, 'motMask_reshape': U_reshape,
             'pupil': pups, 'running': runs, 'blink': blinks, 'rois': rois,
             'sy': sy, 'sx': sx
-            } 
-    
+            }
+    proc.update(proc_new) 
     # save processing
     savename = save(proc, savepath)
     utils.close_videos(containers)

@@ -51,7 +51,7 @@ class MainW(QtGui.QMainWindow):
             self.ops = np.load(opsfile, allow_pickle=True).item()
         except:
             self.ops = {'sbin': 4, 'pupil_sigma': 2., 'fullSVD': False,
-                        'save_path': '', 'save_mat': False}
+                        'save_path': '', 'save_mat': False, 'pupil_smooth_space':0.4}
 
         self.save_path = self.ops['save_path']
 
@@ -127,6 +127,9 @@ class MainW(QtGui.QMainWindow):
         self.reflector.clicked.connect(self.add_reflectROI)
         self.rROI=[]
         self.reflectors=[]
+        self.checkBox_inv = QtGui.QCheckBox("Show inverted")
+        self.checkBox_inv.setStyleSheet("color: gray;")
+        self.l0.addWidget(self.checkBox_inv,1,8+7*j,1,2)
 
         self.p1 = self.win.addPlot(name='plot1',row=1,col=0,colspan=2, title='p1')
         self.p1.setMouseEnabled(x=True,y=False)
@@ -199,6 +202,17 @@ class MainW(QtGui.QMainWindow):
         self.l0.addWidget(binLabel, 9, 0, 1, 3)
         self.l0.addWidget(self.sigmaBox, 10, 0, 1, 3)
         self.pupil_sigma = float(self.sigmaBox.text())
+
+        binLabel = QtGui.QLabel("pupil smooth space:")
+        binLabel.setStyleSheet("color: gray;")
+        self.smoothBox = QtGui.QLineEdit()
+        self.smoothBox.setText(str(self.ops['pupil_smooth_space']))
+        self.smoothBox.setFixedWidth(45)
+        self.l0.addWidget(binLabel, 9, 2, 1, 3)
+        self.l0.addWidget(self.smoothBox, 10, 2, 1, 3)
+        self.pupil_smooth_space = float(self.smoothBox.text())
+
+
         self.sigmaBox.returnPressed.connect(self.pupil_sigma_change)
         self.frameLabel = QtGui.QLabel("Frame:")
         self.frameLabel.setStyleSheet("color: white;")
@@ -612,7 +626,7 @@ class MainW(QtGui.QMainWindow):
     def save_ops(self):
         ops = {'sbin': self.sbin, 'pupil_sigma': float(self.sigmaBox.text()),
                 'save_path': self.save_path, 'fullSVD': self.checkBox.isChecked(),
-                'save_mat': self.save_mat.isChecked()}
+                'save_mat': self.save_mat.isChecked(), 'pupil_smooth_space':float(self.smoothBox.text())}
         opsfile = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'ops_user.npy')
         np.save(opsfile, ops)
         return ops
@@ -631,10 +645,13 @@ class MainW(QtGui.QMainWindow):
             rois = utils.roi_to_dict(self.ROIs, self.rROI)
         else:
             rois = None
+        # proc = {'Ly':self.Ly, 'Lx':self.Lx, 'sy': self.sy, 'sx': self.sx, 'LY':self.LY, 'LX':self.LX,
+        #         'sbin': ops['sbin'], 'fullSVD': ops['fullSVD'], 'rois': rois,
+        #         'save_mat': ops['save_mat'], 'save_path': ops['save_path'],
+        #         'filenames': self.filenames, 'iframes': self.nframes}
         proc = {'Ly':self.Ly, 'Lx':self.Lx, 'sy': self.sy, 'sx': self.sx, 'LY':self.LY, 'LX':self.LX,
-                'sbin': ops['sbin'], 'fullSVD': ops['fullSVD'], 'rois': rois,
-                'save_mat': ops['save_mat'], 'save_path': ops['save_path'],
-                'filenames': self.filenames, 'iframes': self.iframes}
+                'rois': rois,'filenames': self.filenames, 'iframes': self.nframes}
+        proc.update(ops) #add the elements of ops
         savename = process.save(proc, savepath=savepath)
         self.batchlist.append(savename)
         basename,filename = os.path.split(savename)
@@ -660,7 +677,7 @@ class MainW(QtGui.QMainWindow):
         else:
             savepath = None
         print(savepath)
-        savename = process.run(self.filenames, self, savepath=savepath)
+        savename = process.run(self.filenames, self, savepath=savepath,proc=ops)
         io.open_proc(self, file_name=savename)
 
     def plot_processed(self):
