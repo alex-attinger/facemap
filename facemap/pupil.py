@@ -88,10 +88,10 @@ def fit_gaussian(im, sigma=2.0, do_xy=False, missing=None):
     return mu, sv, u, sv, xy, imout
 
 def process(img, saturation, pupil_sigma=2.0, reflector=None,
-            smooth_time=0, smooth_space=0):
+            smooth_time=1, smooth_space=0.4):
     ''' get pupil by fitting 2D gaussian
         (only uses pixels darker than saturation) '''
-
+    print('pupil smooth: {}'.format(smooth_space))
     # smooth in time by two bins
     if smooth_time > 0:
         cumsum = np.cumsum(img, axis=0)

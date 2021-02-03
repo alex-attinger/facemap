@@ -92,6 +92,14 @@ def open_proc(parent, file_name=None):
     try:
         proc = np.load(file_name, allow_pickle=True).item()
         parent.filenames = proc['filenames']
+        if not os.path.isfile(parent.filenames[0][0]):
+            basepath,_ =os.path.split(file_name)
+            _,vid_name = os.path.split(parent.filenames[0][0])
+            fp = os.path.join(basepath,vid_name)
+            proc['filenames'][0][0]=fp
+            parent.filenames = proc['filenames']
+        # import pdb
+        # pdb.set_trace()
         good=True
     except:
         good=False

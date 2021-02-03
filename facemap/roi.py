@@ -273,7 +273,8 @@ class sROI():
                 img = img.mean(axis=-1)
             # smooth in space
             fr = img.astype(np.float32)
-            #fr = gaussian_filter(img.astype(np.float32), 1)
+            fr = gaussian_filter(img.astype(np.float32), float(parent.smoothBox.text()))
+            im = fr.copy()
             #fr -= self.rmin
             fr[~self.ellipse] = 255.0
             fr = 255.0 - fr
@@ -295,15 +296,24 @@ class sROI():
                 pen = pg.mkPen(self.color, width=2)
                 parent.scatter = pg.ScatterPlotItem(xy[:,1], xy[:,0], pen=pen, symbol='+')
                 parent.pROI.addItem(parent.scatter)
-                parent.pROIimg.setImage(255-fr)
-                parent.pROIimg.setLevels([255-sat, 255])
+
+                if parent.checkBox_inv.isChecked():
+                    parent.pROIimg.setImage(255-fr)
+                    parent.pROIimg.setLevels([255-sat, 255])
+                else:
+                    parent.pROIimg.setImage(im)
+                    parent.pROIimg.setLevels([0,parent.sat[0]])
             except:
                 print('no pupil found')
                 parent.pROI.removeItem(parent.scatter)
                 parent.scatter = pg.ScatterPlotItem([0], [0], pen='k', symbol='+')
                 parent.pROI.addItem(parent.scatter)
-                parent.pROIimg.setImage(255-fr)
-                parent.pROIimg.setLevels([255-sat, 255])
+                if parent.checkBox_inv.isChecked():
+                    parent.pROIimg.setImage(255-fr)
+                    parent.pROIimg.setLevels([255-sat, 255])
+                else:
+                    parent.pROIimg.setImage(im)
+                    parent.pROIimg.setLevels([0,parent.sat[0]])
                 area = np.nan
                 mu = [np.nan, np.nan]
             parent.pROI.setRange(xRange=(0, self.xrange.size), yRange=(0,self.yrange.size))
